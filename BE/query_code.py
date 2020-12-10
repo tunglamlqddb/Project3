@@ -8,7 +8,7 @@ import pandas as pd
 import json, os
 
 from calculate_scores import calculate_scores_dynamic, calculate_scores_static
-from query import create_sub_tables, create_co_authors, create_potential_co_authors
+from query import create_sub_tables, create_co_authors, create_potential_co_authors, get_dates_of_topics
 from co_author_graph import *
 
 app = Flask(__name__)
@@ -19,22 +19,25 @@ CORS(app)
 basedir = os.path.dirname(os.path.dirname((os.path.dirname(__file__))))
 db_path = os.path.join(basedir, 'Data_Project3')
 
-@app.route('/')
-def hello_world():
-    return 'Hello World!'
+@app.route('/get_dates_of_topics', methods=['POST'])
+def _get_dates_of_topics():
+    topics = request.get_json()["topics"]
+    return get_dates_of_topics(topics)
 
 @app.route('/query', methods=['POST'])
 def _query():
     num_records = request.get_json()["num_records"]
-    topic = request.get_json()["topic"]
-    return create_sub_tables(num_records, topic)
+    topics = request.get_json()["topics"]
+    from_date = request.get_json()["from_date"]
+    to_date = request.get_json()["to_date"]
+    return create_sub_tables(num_records, topics, from_date, to_date)
     
 
 @app.route('/create_co_authors', methods=['POST'])
 def _create_co_authors():
     num_records = request.get_json()["num_records"]
-    topic = request.get_json()["topic"]
-    return create_co_authors(num_records, topic)
+    topics = request.get_json()["topics"]
+    return create_co_authors(num_records, topics)
    
 # def slice_co_author(num_records, time_slice):
 #     # return name of sliced_co_author table
@@ -56,8 +59,8 @@ def _create_co_authors():
 def _create_potential_co_authors():
     num_records = request.get_json()["num_records"]
     level = request.get_json()["level"]
-    topic = request.get_json()["topic"]
-    return create_potential_co_authors(num_records, level, topic)
+    topics = request.get_json()["topics"]
+    return create_potential_co_authors(num_records, level, topics, "co_author", "potential_co_author_")
     #time_slice = request.get_json()["time_slice"]
 
     # name_of_sliced_co_author = slice_co_author(num_records, time_slice)
@@ -68,15 +71,16 @@ def _calculate_scores():
     # time is divided by year
     num_records = request.get_json()["num_records"]
     level = request.get_json()["level"]
-    topic = request.get_json()["topic"]
+    topics = request.get_json()["topics"]
     weight_type = request.get_json()["weight_type"]
     label_type = request.get_json()["label_type"]
-    graph = Co_Author_Graph(num_records, topic, db_path + "/subDB_" + num_records + "_" + topic + ".sqlite3")
+    graph = Co_Author_Graph(num_records, topics, db_path + "/subDB_" + num_records + "_" + "_".join(topics) + ".sqlite3")
     if label_type == "dynamic":
-        return calculate_scores_dynamic(num_records, level, topic, weight_type, graph)
+        return calculate_scores_dynamic(num_records, level, topics, weight_type, graph)
     if label_type == "static":
         time_slice = request.get_json()["time_slice"]
-        return calculate_scores_static(num_records, level, topic, weight_type, graph, time_slice)
+        return calculate_scores_static(num_records, level, topics, weight_type, graph, time_slice)
 
   
+
 app.run(debug=True)

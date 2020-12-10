@@ -5,10 +5,28 @@ import json, os
 basedir = os.path.dirname(os.path.dirname((os.path.dirname(__file__))))
 db_path = os.path.join(basedir, 'Data_Project3')
 
-def create_sub_tables(num_records, topic):
+def get_dates_of_topics(topics):
     with sqlite3.connect(db_path + '/db.sqlite3') as conn:
         cur = conn.cursor()
-        cur.execute("ATTACH DATABASE '" + db_path +  "/subDB_" + num_records + "_" + topic + ".sqlite3' AS sub_db")
+        get_dates_query = ("select distinct p.date from collab_paper p \
+                            where p.journal_id in (" + ','.join(topics) + ")")
+        cur.execute(get_dates_query)
+        records = cur.fetchall()
+        # total records
+        num_records = len(records)
+        # consider only years
+        years = set()
+        for date in records:
+            date = date[0]
+            year = int(date[0:4])
+            years.add(year)
+    return  json.dumps({"dates": sorted(list(years)), "num_records": num_records})
+
+def create_sub_tables(num_records, topics, from_date, to_date):
+    topic_name = "_".join(topics)
+    with sqlite3.connect(db_path + '/db.sqlite3') as conn:
+        cur = conn.cursor()
+        cur.execute("ATTACH DATABASE '" + db_path +  "/subDB_" + num_records + "_" + topic_name + ".sqlite3' AS sub_db")
         name1 = "paper"
         name2 = "paper_authors"
         name3 = "author" 
@@ -18,8 +36,9 @@ def create_sub_tables(num_records, topic):
         
         create_paper_table = ("create table sub_db.paper" +  
                             " as select p.id, p.date from collab_paper p \
-                            where p.journal_id = " + topic +
-                            " limit " + num_records
+                            where p.journal_id in (" + ','.join(topics) + ") \
+                            and substr(p.date,1,4) >= '" + from_date + "' \
+                            and substr(p.date,1,4) <= '" + to_date + "'"
                             )
 
         create_paper_authors_table = ("create table sub_db.paper_authors" +  
@@ -66,17 +85,16 @@ def create_sub_tables(num_records, topic):
         res3 = cur.fetchall()
     return  json.dumps({"paper": [name_1,res1], "author": [name_2,res2], "paper_authors": [name_3,res3]})
 
-def create_co_authors(num_records, topic):
-    with sqlite3.connect(db_path + '/db.sqlite3') as conn:
+def create_co_authors(num_records, topics):
+    with sqlite3.connect(db_path + "/subDB_" + num_records + "_" + "_".join(topics) + ".sqlite3") as conn:
         cur = conn.cursor()
-        cur.execute("ATTACH DATABASE '" + db_path +  "/subDB_" + num_records + "_" + topic + ".sqlite3' AS sub_db")
-        create_co_authors_table = ("create table sub_db.co_author \
+        create_co_authors_table = ("create table co_author \
                                     as select pa1.paper_id, pa1.author_id as id_author_1, pa2.author_id as id_author_2 \
-                                    from sub_db.paper_authors pa1 \
-                                    join sub_db.paper_authors pa2 \
+                                    from paper_authors pa1 \
+                                    join paper_authors pa2 \
                                     on pa1.paper_id = pa2.paper_id and pa1.author_id < pa2.author_id order by pa1.paper_id"
                                 )       
-        check = "select count(name) from sub_db.sqlite_master where type='table' and name='co_author'"
+        check = "select count(name) from sqlite_master where type='table' and name='co_author'"
         cur.execute(check)
         if cur.fetchone()[0] == 1:
             msg = "co author table already exists"
@@ -84,28 +102,27 @@ def create_co_authors(num_records, topic):
         else:
             res = cur.execute(create_co_authors_table)
             message = {"msg": "create co author table successfully!",
-                    "name": "co author " + num_records + "_" + topic
+                    "name": "co author " + num_records + "_" + "_".join(topics)
             }
 
     # query to return result ==> may be unnecessary
-    query = ("select * from sub_db.co_author")
+    query = ("select distinct id_author_1, id_author_2 from co_author")
     cur.execute(query)
     column_names = [i[0] for i in cur.description]
     result = cur.fetchall()
     return json.dumps({"co_author": [column_names,result], "msg": message})
 
-def create_potential_co_authors(num_records, level, topic):
-    temp = "sub_db.co_author"
+def create_potential_co_authors(num_records, level, topics, co_author_name, potential_co_author_name):   # could be used for time sliced potential
+    temp = co_author_name
     message = []
 
-    with sqlite3.connect(db_path + '/db.sqlite3') as conn:
+    with sqlite3.connect(db_path + "/subDB_" + num_records + "_" + "_".join(topics) + ".sqlite3") as conn:
         cur = conn.cursor()
-        cur.execute("ATTACH DATABASE '" + db_path +  "/subDB_" + num_records + "_" + topic + ".sqlite3' AS sub_db")
         for i in range(level):
             if i > 0:
-                temp = "sub_db.potential_co_author_" + str(i)
-            create_potential_co_authors_table = ("create table sub_db.potential_co_author_" + str(i+1) 
-                                            + " as \
+                temp = potential_co_author_name + str(i)
+            create_potential_co_authors_table = ("create table " + potential_co_author_name + str(i+1) +
+                                                " as \
                                                 select co1.id_author_2 as id_author_1, co2.id_author_2 as id_author_2 \
                                                 from " + temp + " co1 \
                                                 join " + temp + " co2 \
@@ -126,19 +143,19 @@ def create_potential_co_authors(num_records, level, topic):
                                                 union \
                                                 select co.id_author_1, co.id_author_2 \
                                                 from " + temp + " co")
-            name = "potential_co_author_" + str(i+1) 
-            check = "select count(name) from sub_db.sqlite_master where type='table' and name='" + name + "'"
+            name = potential_co_author_name + str(i+1) 
+            check = "select count(name) from sqlite_master where type='table' and name='" + name + "'"
             cur.execute(check)
             if cur.fetchone()[0] == 1:
                 msg = name + " already exists"
                 message.append({"msg": msg})
             else:
                 cur.execute(create_potential_co_authors_table)
-                msg = "create potential co author table level " + str(i+1) + " successfully"   
+                msg = "create " + potential_co_author_name + " table successfully"   
                 message.append({"msg" : msg})
 
     # query to return result ==> may be unnecessary
-    query = ("select * from sub_db.potential_co_author_" + str(level))
+    query = ("select * from " + potential_co_author_name + str(level))
     cur.execute(query)
     column_names = [i[0] for i in cur.description]
     result = cur.fetchall()

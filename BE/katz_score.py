@@ -28,4 +28,5 @@ print(A.todense())
 # for n,c in sorted(centrality.items()): 
 #     print("%d %0.8f"%(n,c))
 
-def katz(list_nodes, )
+#def katz(list_nodes, )
+

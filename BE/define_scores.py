@@ -137,7 +137,7 @@ def ShortestPath(id1, id2, adj,t):    # not take w into account
     else:   
         return 1 / dist
 
-def CommonCountry(adj, list_vertices, records, num_records, topic, max_time, label_type, time_slice):  # records of potential_co_author
+def CommonCountry(adj, list_vertices, records, num_records, max_time, label_type, time_slice):  # records of potential_co_author
     # return list of scores of each pair
     CommonCountry_list = []
     

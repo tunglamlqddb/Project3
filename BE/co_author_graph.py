@@ -20,7 +20,7 @@ class Vertice:
     
 
 class Co_Author_Graph:
-    def __init__(self, num_records, topic, db_path):
+    def __init__(self, num_records, topics, db_path):
         self.list_vertices = defaultdict(Vertice)
         self.adj = defaultdict(dict)
         self.time_patterns = set() # used to store all years of publication; could be month or smth else
@@ -55,7 +55,7 @@ class Co_Author_Graph:
                 date = row[2].split("-")
                 year, month, day = int(date[0]), int(date[1]), int(date[2])
                 self.time_patterns.add(year)
-                if v in self.adj[u]:
+                if v in self.adj[u].keys():
                     self.adj[u][v].w += 1
                     self.adj[u][v].add_time(year, month, day)
                     self.adj[v][u].w += 1
@@ -66,4 +66,3 @@ class Co_Author_Graph:
                     self.adj[v][u] = Edge(1)
                     self.adj[v][u].add_time(year, month, day)
             self.time_patterns = sorted(self.time_patterns, reverse=True)
-
