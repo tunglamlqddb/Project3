@@ -13,7 +13,7 @@
   </head>
   <body>
     <div class="card">
-      <div class="card-header">Project III</div>
+      <div class="card-header">Create data</div>
       <div class="card-body">
         <!-- <div class="form-group">
           <label for="type-journal"> Choose Topic of Journal</label>
@@ -267,12 +267,25 @@
     <p id="result1"></p>
     <p id="result2"></p>
     <p id="result3"></p>
+
+    <div class="form-group">
+      <a href=train_recommend.html>
+        <button
+          type="button"
+          class="btn btn-primary"
+          onclick="()"
+        >
+          Move to training phase
+        </button>
+      </a>
+    </div>
+
   </body>
 
   <script>
 
     // global variable num_records
-    var num_records = "";
+    var num_records = 0;
 
     function show_time_slice() {
       // label_type = document.getElementById("label_type").value;
@@ -304,7 +317,8 @@
       })
       .then((res) => res.json())
       .then((result) => {
-        num_records += result["num_records"];
+        num_records = result["num_records"];
+        num_records = String(num_records);
         console.log("Những năm mà các paper đó được viết: ", result["dates"])
         show_dates_of_topics(result['dates']);
       })
@@ -348,13 +362,15 @@
       $(':checkbox:checked').each(function(i){
           topics[i] = $(this).val();
         });
+      const from_date = document.getElementById("fromDate").value;
+      const to_date = document.getElementById("toDate").value;
       fetch("http://127.0.0.1:5000/create_co_authors", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Access-Control-Allow-Origin": "*",
         },
-        body: JSON.stringify({ num_records: num_records, topics: topics }),
+        body: JSON.stringify({ num_records: num_records, topics: topics, from_date: from_date, to_date: to_date }),
       })
         .then((res) => res.json())
         .then((result) => {
@@ -373,6 +389,8 @@
       $(':checkbox:checked').each(function(i){
           topics[i] = $(this).val();
         });
+      const from_date = document.getElementById("fromDate").value;
+      const to_date = document.getElementById("toDate").value;
       fetch("http://127.0.0.1:5000/create_potential_co_authors", {
         method: "POST",
         headers: {
@@ -383,6 +401,8 @@
           num_records: num_records,
           level: level,
           topics: topics,
+          from_date: from_date,
+          to_date: to_date
         }),
       })
         .then((res) => res.json())
@@ -409,6 +429,8 @@
       const year_slice = document.getElementById("year_slice").value;
       const month_slice = document.getElementById("month_slice").value;
       const day_slice = document.getElementById("day_slice").value;
+      const from_date = document.getElementById("fromDate").value;
+      const to_date = document.getElementById("toDate").value;
       var time_slice = "";
       if (label_type == "static") {
         if (year_slice == "") {
@@ -432,6 +454,8 @@
           num_records: num_records,
           level: level,
           topics: topics,
+          from_date: from_date,
+          to_date:to_date,
           weight_type: weight_type,
           label_type: label_type,
           time_slice: time_slice,
@@ -441,6 +465,8 @@
           num_records: num_records,
           level: level,
           topics: topics,
+          from_date: from_date,
+          to_date: to_date,
           weight_type: weight_type,
           label_type: label_type,
         });

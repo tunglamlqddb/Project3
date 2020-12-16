@@ -3,8 +3,8 @@ import math
 def list_co_authors_before_t(u, t, adj):
     res = []
     for v in adj[u].keys():
-        for year in adj[u][v].years:
-            if year <= t:
+        for year in adj[u][v].years.keys():
+            if year < t:
                 res.append(v)
                 break
     return res
@@ -12,102 +12,113 @@ def list_co_authors_before_t(u, t, adj):
 def get_weight_before_t(u,v,adj,t):
     old_w = adj[u][v].w
     cnt = 0
-    for year in adj[u][v].years:
-        if year > t: 
-            cnt += 1
+    for year in sort(adj[u][v].years.keys(), reversed=True):
+        if year >= t: 
+            cnt += adj[u][v].years[year]
+        else: break
     return old_w - cnt
 
-def CommonNeighbor(id1, id2, adj, t):
-    co_id1 = list_co_authors_before_t(id1, t, adj)
-    co_id2 = list_co_authors_before_t(id2, t, adj)
-    common_neighbors = list(set(co_id1) & set(co_id2))
-    # unweighted
-    unweighted_res = len(set(co_id1) & set(co_id2))
-    # weighted
-    weighted_res = 0
-    for z in common_neighbors:
-        w_id1_z = get_weight_before_t(id1, z, adj, t)
-        w_id2_z = get_weight_before_t(id2, z, adj, t)
-        weighted_res += (w_id1_z + w_id2_z) / 2
-    return {'unweighted' : unweighted_res, 'weighted' : weighted_res}
+def CommonNeighbor(id1, id2, adj, t, co_id1, co_id2, common_neighbors, weight_type):
+    # co_id1 = list_co_authors_before_t(id1, t, adj)
+    # co_id2 = list_co_authors_before_t(id2, t, adj)
+    # common_neighbors = list(set(co_id1) & set(co_id2))
+    res = 0
+    if weight_type == "unweighted":
+        res = len(common_neighbors)
+    else:
+        for z in common_neighbors:
+            w_id1_z = get_weight_before_t(id1, z, adj, t)
+            w_id2_z = get_weight_before_t(id2, z, adj, t)
+            res += (w_id1_z + w_id2_z) / 2
+    return res
 
-def AdamicAdar(id1, id2, adj, t):
+def AdamicAdar(id1, id2, adj, t, co_id1, co_id2, common_neighbors, weight_type):
     # {z}
-    co_id1 = list_co_authors_before_t(id1, t, adj)
-    co_id2 = list_co_authors_before_t(id2, t, adj)
-    common_neighbors = list(set(co_id1) & set(co_id2))
-    # unweighted
-    unweighted_res = 0
-    for z in common_neighbors:
-        co_z = list_co_authors_before_t(z, t, adj)
-        unweighted_res += 1 / (math.log(len(co_z)))
-    # weighted
-    weighted_res = 0
-    for z in common_neighbors:
-        w_id1_z = get_weight_before_t(id1, z, adj, t)
-        w_id2_z = get_weight_before_t(id2, z, adj, t)
-        numerator = (w_id1_z + w_id2_z) / 2
-        denominator = 0
-        co_z = list_co_authors_before_t(z, t, adj)
-        for i in co_z:
-            w_z_i = get_weight_before_t(z, i, adj, t)
-            denominator += w_z_i
-        denominator = math.log(denominator)
-        weighted_res += numerator / denominator
-    return {'unweighted' : unweighted_res, 'weighted' : weighted_res}
+    # co_id1 = list_co_authors_before_t(id1, t, adj)
+    # co_id2 = list_co_authors_before_t(id2, t, adj)
+    # common_neighbors = list(set(co_id1) & set(co_id2))
+    res = 0
+    if weight_type == "unweighted":
+        for z in common_neighbors:
+            co_z = list_co_authors_before_t(z, t, adj)
+            if len(co_z) > 1:
+                res += 1 / (math.log(len(co_z)))
+    else:
+        for z in common_neighbors:
+            w_id1_z = get_weight_before_t(id1, z, adj, t)
+            w_id2_z = get_weight_before_t(id2, z, adj, t)
+            numerator = (w_id1_z + w_id2_z) / 2
+            denominator = 0
+            co_z = list_co_authors_before_t(z, t, adj)
+            for i in co_z:
+                w_z_i = get_weight_before_t(z, i, adj, t)
+                denominator += w_z_i
+            if denominator > 1:
+                denominator = math.log(denominator)
+                res += numerator / denominator
+    return res
 
-def JaccardCoefficient(id1, id2, adj, t):
-    co_id1 = list_co_authors_before_t(id1, t, adj)
-    co_id2 = list_co_authors_before_t(id2, t, adj)
-    # unweighted
-    unweighted_res = len(set(co_id1) & set(co_id2)) / len(set(co_id1).union(set(co_id2)))
-    # weighted
-    weighted_res = unweighted_res
-    return {'unweighted' : unweighted_res, 'weighted' : weighted_res}
+def JaccardCoefficient(id1, id2, adj, t, co_id1, co_id2, common_neighbors, weight_type):
+    # co_id1 = list_co_authors_before_t(id1, t, adj)
+    # co_id2 = list_co_authors_before_t(id2, t, adj)
+    res = 0
+    if weight_type == "unweighted":
+        if len(co_id1) > 0 or len(co_id2) > 0: 
+            res = len(common_neighbors) / len(set(co_id1).union(set(co_id2)))
+    else:   # same
+        if len(co_id1) > 0 or len(co_id2) > 0: 
+            res = len(common_neighbors) / len(set(co_id1).union(set(co_id2)))
+    return res
 
-def PreferentialAttachment(id1, id2, adj, t):
-    co_id1 = list_co_authors_before_t(id1, t, adj)
-    co_id2 = list_co_authors_before_t(id2, t, adj)
-    # unweighted
-    unweighted_res = len(co_id1) * len(co_id2)
-    # weighted
-    id1_contri = 0
-    for z in co_id1:
-        w_id1_z = get_weight_before_t(id1, z, adj, t)
-        id1_contri += w_id1_z
-    id1_contri /= len(co_id1)
+def PreferentialAttachment(id1, id2, adj, t, co_id1, co_id2, common_neighbors, weight_type):
+    # co_id1 = list_co_authors_before_t(id1, t, adj)
+    # co_id2 = list_co_authors_before_t(id2, t, adj)
+    res = 0
+    if weight_type == "unweighted":
+        res = len(co_id1) * len(co_id2)
+    else:
+        id1_contri = 0
+        for z in co_id1:
+            w_id1_z = get_weight_before_t(id1, z, adj, t)
+            id1_contri += w_id1_z
+        if len(co_id1) > 0: 
+            id1_contri /= len(co_id1)
 
-    id2_contri = 0
-    for z in co_id2:
-        w_id2_z = get_weight_before_t(id2, z, adj, t)
-        id2_contri += w_id2_z
-    id2_contri /= len(co_id2)
-    weighted_res = id1_contri * id2_contri
-    return {'unweighted' : unweighted_res, 'weighted' : weighted_res}
+        id2_contri = 0
+        for z in co_id2:
+            w_id2_z = get_weight_before_t(id2, z, adj, t)
+            id2_contri += w_id2_z
+        if len(co_id2)> 0:
+            id2_contri /= len(co_id2)
+            
+        res = id1_contri * id2_contri
 
-def ResourceAllocation(id1, id2, adj, t):
+    return res
+
+def ResourceAllocation(id1, id2, adj, t, co_id1, co_id2, common_neighbors, weight_type):
     # {z}
-    co_id1 = list_co_authors_before_t(id1, t, adj)
-    co_id2 = list_co_authors_before_t(id2, t, adj)
-    common_neighbors = list(set(co_id1) & set(co_id2))
-    # unweighted
-    unweighted_res = 0
-    for z in common_neighbors:
-        co_z = list_co_authors_before_t(z, t, adj)
-        unweighted_res += 1 / (len(co_z))
-    # weighted
-    weighted_res = 0
-    for z in common_neighbors:
-        w_id1_z = get_weight_before_t(id1, z, adj, t)
-        w_id2_z = get_weight_before_t(id2, z, adj, t)
-        numerator = (w_id1_z + w_id2_z) / 2
-        co_z = list_co_authors_before_t(z, t, adj)
-        denominator = 0
-        for i in co_z:
-            w_z_i = get_weight_before_t(z, i, adj, t)
-            denominator += w_z_i
-        weighted_res += numerator / denominator
-    return {'unweighted' : unweighted_res, 'weighted' : weighted_res}
+    # co_id1 = list_co_authors_before_t(id1, t, adj)
+    # co_id2 = list_co_authors_before_t(id2, t, adj)
+    # common_neighbors = list(set(co_id1) & set(co_id2))
+    res = 0
+    if weight_type == "unweighted":
+        for z in common_neighbors:
+            co_z = list_co_authors_before_t(z, t, adj)
+            if len(co_z) > 0:
+                res += 1 / (len(co_z))
+    else:
+        for z in common_neighbors:
+            w_id1_z = get_weight_before_t(id1, z, adj, t)
+            w_id2_z = get_weight_before_t(id2, z, adj, t)
+            numerator = (w_id1_z + w_id2_z) / 2
+            co_z = list_co_authors_before_t(z, t, adj)
+            denominator = 0
+            for i in co_z:
+                w_z_i = get_weight_before_t(z, i, adj, t)
+                denominator += w_z_i
+            if denominator > 0:
+                res += numerator / denominator
+    return res
 
 def bfs(s, e, adj, t):     #bfs to find shortest path between s and e
     num_ver = len(adj)
@@ -137,7 +148,7 @@ def ShortestPath(id1, id2, adj,t):    # not take w into account
     else:   
         return 1 / dist
 
-def CommonCountry(adj, list_vertices, records, num_records, max_time, label_type, time_slice):  # records of potential_co_author
+def CommonCountry(adj, list_vertices, records, max_time, label_type, time_slice):  # records of potential_co_author
     # return list of scores of each pair
     CommonCountry_list = []
     
@@ -159,7 +170,7 @@ def CommonCountry(adj, list_vertices, records, num_records, max_time, label_type
             id1 = row[0]
             id2 = row[1]
             if id2 in adj[id1].keys(): 
-                t = max(adj[id1][id2].years)
+                t = adj[id1][id2].max_time_pattern
                 comm_country_score = sim_work_2(id1, id2)    
                 co_id1 = list_co_authors_before_t(id1, t, adj)
                 co_id2 = list_co_authors_before_t(id2, t, adj)

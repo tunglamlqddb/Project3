@@ -26,7 +26,7 @@ def create_sub_tables(num_records, topics, from_date, to_date):
     topic_name = "_".join(topics)
     with sqlite3.connect(db_path + '/db.sqlite3') as conn:
         cur = conn.cursor()
-        cur.execute("ATTACH DATABASE '" + db_path +  "/subDB_" + num_records + "_" + topic_name + ".sqlite3' AS sub_db")
+        cur.execute("ATTACH DATABASE '" + db_path +  "/subDB_" + num_records + "_" + topic_name + "_" + from_date + "_" + to_date + ".sqlite3' AS sub_db")
         name1 = "paper"
         name2 = "paper_authors"
         name3 = "author" 
@@ -85,8 +85,8 @@ def create_sub_tables(num_records, topics, from_date, to_date):
         res3 = cur.fetchall()
     return  json.dumps({"paper": [name_1,res1], "author": [name_2,res2], "paper_authors": [name_3,res3]})
 
-def create_co_authors(num_records, topics):
-    with sqlite3.connect(db_path + "/subDB_" + num_records + "_" + "_".join(topics) + ".sqlite3") as conn:
+def create_co_authors(num_records, topics, from_date, to_date):
+    with sqlite3.connect(db_path + "/subDB_" + num_records + "_" + "_".join(topics) + "_" + from_date + "_" + to_date + ".sqlite3") as conn:
         cur = conn.cursor()
         create_co_authors_table = ("create table co_author \
                                     as select pa1.paper_id, pa1.author_id as id_author_1, pa2.author_id as id_author_2 \
@@ -112,11 +112,11 @@ def create_co_authors(num_records, topics):
     result = cur.fetchall()
     return json.dumps({"co_author": [column_names,result], "msg": message})
 
-def create_potential_co_authors(num_records, level, topics, co_author_name, potential_co_author_name):   # could be used for time sliced potential
+def create_potential_co_authors(num_records, level, topics, co_author_name, potential_co_author_name, from_date, to_date):   # could be used for time sliced potential
     temp = co_author_name
     message = []
 
-    with sqlite3.connect(db_path + "/subDB_" + num_records + "_" + "_".join(topics) + ".sqlite3") as conn:
+    with sqlite3.connect(db_path + "/subDB_" + num_records + "_" + "_".join(topics) + "_" + from_date + "_" + to_date + ".sqlite3") as conn:
         cur = conn.cursor()
         for i in range(level):
             if i > 0:

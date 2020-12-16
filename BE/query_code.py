@@ -10,6 +10,7 @@ import json, os
 from calculate_scores import calculate_scores_dynamic, calculate_scores_static
 from query import create_sub_tables, create_co_authors, create_potential_co_authors, get_dates_of_topics
 from co_author_graph import *
+from train_recommend import train
 
 app = Flask(__name__)
 CORS(app)
@@ -37,7 +38,9 @@ def _query():
 def _create_co_authors():
     num_records = request.get_json()["num_records"]
     topics = request.get_json()["topics"]
-    return create_co_authors(num_records, topics)
+    from_date = request.get_json()["from_date"]
+    to_date = request.get_json()["to_date"]
+    return create_co_authors(num_records, topics, from_date, to_date)
    
 # def slice_co_author(num_records, time_slice):
 #     # return name of sliced_co_author table
@@ -60,7 +63,9 @@ def _create_potential_co_authors():
     num_records = request.get_json()["num_records"]
     level = request.get_json()["level"]
     topics = request.get_json()["topics"]
-    return create_potential_co_authors(num_records, level, topics, "co_author", "potential_co_author_")
+    from_date = request.get_json()["from_date"]
+    to_date = request.get_json()["to_date"]
+    return create_potential_co_authors(num_records, level, topics, "co_author", "potential_co_author_", from_date, to_date)
     #time_slice = request.get_json()["time_slice"]
 
     # name_of_sliced_co_author = slice_co_author(num_records, time_slice)
@@ -74,13 +79,23 @@ def _calculate_scores():
     topics = request.get_json()["topics"]
     weight_type = request.get_json()["weight_type"]
     label_type = request.get_json()["label_type"]
-    graph = Co_Author_Graph(num_records, topics, db_path + "/subDB_" + num_records + "_" + "_".join(topics) + ".sqlite3")
+    from_date = request.get_json()["from_date"]
+    to_date = request.get_json()["to_date"]
+    graph = Co_Author_Graph(db_path + "/subDB_" + num_records + "_" + "_".join(topics) + "_" + from_date + "_" + to_date + ".sqlite3")
     if label_type == "dynamic":
-        return calculate_scores_dynamic(num_records, level, topics, weight_type, graph)
+        return calculate_scores_dynamic(num_records, level, topics, from_date, to_date, weight_type, graph)
     if label_type == "static":
         time_slice = request.get_json()["time_slice"]
-        return calculate_scores_static(num_records, level, topics, weight_type, graph, time_slice)
+        return calculate_scores_static(num_records, level, topics, from_date, to_date, weight_type, graph, time_slice)
 
-  
+@app.route('/train_recommend')
+def _train_recommend():
+    return render_template('train_recommend.html')
+
+@app.route('/train', methods=['POST'])
+def _train():
+    data_name = request.get_json()["data_name"]
+    test_percent = request.get_json()["test_percent"]
+    return train(data_name, test_percent)
 
 app.run(debug=True)
