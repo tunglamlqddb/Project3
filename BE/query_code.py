@@ -81,12 +81,13 @@ def _calculate_scores():
     label_type = request.get_json()["label_type"]
     from_date = request.get_json()["from_date"]
     to_date = request.get_json()["to_date"]
+    csv_file_name = request.get_json()["csv_file_name"]
     graph = Co_Author_Graph(db_path + "/subDB_" + num_records + "_" + "_".join(topics) + "_" + from_date + "_" + to_date + ".sqlite3")
     if label_type == "dynamic":
-        return calculate_scores_dynamic(num_records, level, topics, from_date, to_date, weight_type, graph)
+        return calculate_scores_dynamic(num_records, level, topics, from_date, to_date, weight_type, graph, csv_file_name)
     if label_type == "static":
         time_slice = request.get_json()["time_slice"]
-        return calculate_scores_static(num_records, level, topics, from_date, to_date, weight_type, graph, time_slice)
+        return calculate_scores_static(num_records, level, topics, from_date, to_date, weight_type, graph, time_slice, csv_file_name)
 
 @app.route('/train_recommend')
 def _train_recommend():

@@ -14,7 +14,7 @@ db_path = os.path.join(par_prj, 'Data_Project3')
 
 from define_scores import list_co_authors_before_t, CommonNeighbor, AdamicAdar, JaccardCoefficient, PreferentialAttachment, ResourceAllocation, ShortestPath, CommonCountry
 
-def calculate_scores_dynamic(num_records, level, topics, from_date, to_date, weight_type, graph):
+def calculate_scores_dynamic(num_records, level, topics, from_date, to_date, weight_type, graph, csv_file_name):
     adj = graph.adj
     time_patterns = graph.time_patterns
 
@@ -75,13 +75,15 @@ def calculate_scores_dynamic(num_records, level, topics, from_date, to_date, wei
             log_cnt += 1
             if log_cnt % 5000 == 0:
                 print("Done {}--{}---{}".format(id1, id2, datetime.now().time()))
-            
-        file_name = results_path + "/Data_" + num_records + "_" + "_".join(topics) + "_" + from_date + "_" + to_date + "_" + weight_type + "_dynamic.csv"
+        if csv_file_name == "":
+            file_name = results_path + "/Data_" + num_records + "_" + "_".join(topics) + "_" + from_date + "_" + to_date + "_" + weight_type + "_dynamic.csv"
+        else: 
+            file_name = results_path + "/" + csv_file_name + ".csv"
         write_scores_to_csv(file_name, CommonCountry_list, AdamicAdar_list, JaccardCoefficient_list, PreferentialAttachment_list, ResourceAllocation_list, ShortestPath_list, CommonCountry_list, labels, cur, records)
 
     return jsonify({"msg": (cnt_0, cnt_1), "name" : file_name})       
 
-def calculate_scores_static(num_records, level, topics, from_date, to_date, weight_type, graph, time_slice):
+def calculate_scores_static(num_records, level, topics, from_date, to_date, weight_type, graph, time_slice, csv_file_name):
     adj = graph.adj
     time_patterns = graph.time_patterns
     max_time = max(time_patterns) + 1
@@ -156,8 +158,10 @@ def calculate_scores_static(num_records, level, topics, from_date, to_date, weig
             else: 
                 labels.append(0)
                 cnt_0 += 1
-
-        file_name = results_path + "/Data_" + num_records + "_" + "_".join(topics) + "_" + from_date + "_" + to_date + "_" + weight_type + "_" + time_slice + "_static.csv"
+        if csv_file_name == "":
+            file_name = results_path + "/Data_" + num_records + "_" + "_".join(topics) + "_" + from_date + "_" + to_date + "_" + weight_type + "_" + time_slice + "_static.csv"
+        else: 
+            file_name = results_path + "/" + csv_file_name + ".csv"
         write_scores_to_csv(file_name, CommonCountry_list, AdamicAdar_list, JaccardCoefficient_list, PreferentialAttachment_list, ResourceAllocation_list, ShortestPath_list, CommonCountry_list, labels, cur, records)
 
     return jsonify({"msg": (cnt_0, cnt_1), "name" : file_name}) 
