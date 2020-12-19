@@ -4,8 +4,8 @@ Co-author recommender system
 - Flask==1.1.2
 - Flask-Cors==3.0.9
 2. Create a folder named "Data_Project3" in the directory containing the cloned folder, and place file db.sqlite3 there. Also note that sub-databases will be created and stored in this folder too
-3. Run file 'query_code.py' in folder BE through terminal or GUI and open file 'front_end_1.html' in folder FE on a web browser (Google Chrome). 
-4. When finishing the last step - calculate scores, result files will be created and stored in folder Result with the format: Data_NumRecords_JournalID_FromDate_ToDate_WeightType_LabelType.csv in which:
+3. Run file 'query_code.py' in folder BE through terminal or GUI and open file 'bootstrap_template.html' in folder FE on a web browser (Google Chrome). 
+4. When finishing the last step - calculate scores, result files will be created and stored in folder Result with the name given or with the format: Data_NumRecords_JournalID_FromDate_ToDate_WeightType_LabelType.csv in which:
 	>- NumRecords: the total number of papers of the selected Journals
 	>- JournalID: list of ID(s) of paper journal chosen (available IDs: 21, 22, 23, 24)
 	>- FromDate: year chosen to start selecting papers 
