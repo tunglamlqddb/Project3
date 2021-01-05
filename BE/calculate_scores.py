@@ -14,7 +14,7 @@ db_path = os.path.join(par_prj, 'Data_Project3')
 
 from define_scores import list_co_authors_before_t, CommonNeighbor, AdamicAdar, JaccardCoefficient, PreferentialAttachment, ResourceAllocation, ShortestPath, CommonCountry
 
-def calculate_scores_dynamic(num_records, level, topics, from_date, to_date, weight_type, graph, csv_file_name):
+def calculate_scores_dynamic(level, topics, from_date, to_date, weight_type, graph, csv_file_name):
     adj = graph.adj
     time_patterns = graph.time_patterns
 
@@ -32,8 +32,8 @@ def calculate_scores_dynamic(num_records, level, topics, from_date, to_date, wei
 
     # use for (u,v) not co author 
     max_time = max(time_patterns) + 1
-    log_cnt = 0
-    with sqlite3.connect(db_path + "/subDB_" + num_records + "_" + "_".join(topics) + "_" + from_date + "_" + to_date + ".sqlite3") as conn:
+    # log_cnt = 0
+    with sqlite3.connect(db_path + "/subDB_" + "_".join(topics) + "_" + from_date + "_" + to_date + ".sqlite3") as conn:
         cur = conn.cursor()
         potential_co_author_query = "select * from potential_co_author_" + str(level) 
         cur.execute(potential_co_author_query)
@@ -72,18 +72,18 @@ def calculate_scores_dynamic(num_records, level, topics, from_date, to_date, wei
                 ShortestPath_list.append(ShortestPath(id1,id2, adj, max_time))
                 labels.append(0)
                 cnt_0 += 1
-            log_cnt += 1
-            if log_cnt % 5000 == 0:
-                print("Done {}--{}---{}".format(id1, id2, datetime.now().time()))
+            # log_cnt += 1
+            # if log_cnt % 5000 == 0:
+            #     print("Done {}--{}---{}".format(id1, id2, datetime.now().time()))
         if csv_file_name == "":
-            file_name = results_path + "/Data_" + num_records + "_" + "_".join(topics) + "_" + from_date + "_" + to_date + "_" + weight_type + "_dynamic.csv"
+            file_name = results_path + "/Data_" + "_".join(topics) + "_" + from_date + "_" + to_date + "_" + weight_type + "_dynamic.csv"
         else: 
             file_name = results_path + "/" + csv_file_name + ".csv"
-        write_scores_to_csv(file_name, CommonCountry_list, AdamicAdar_list, JaccardCoefficient_list, PreferentialAttachment_list, ResourceAllocation_list, ShortestPath_list, CommonCountry_list, labels, cur, records)
+        write_scores_to_csv(file_name, CommonNeighbor_list, AdamicAdar_list, JaccardCoefficient_list, PreferentialAttachment_list, ResourceAllocation_list, ShortestPath_list, CommonCountry_list, labels, cur, records)
 
     return jsonify({"msg": (cnt_0, cnt_1), "name" : file_name})       
 
-def calculate_scores_static(num_records, level, topics, from_date, to_date, weight_type, graph, time_slice, csv_file_name):
+def calculate_scores_static(level, topics, from_date, to_date, weight_type, graph, time_slice, csv_file_name):
     adj = graph.adj
     time_patterns = graph.time_patterns
     max_time = max(time_patterns) + 1
@@ -107,7 +107,7 @@ def calculate_scores_static(num_records, level, topics, from_date, to_date, weig
     # labels
     labels = []
 
-    with sqlite3.connect(db_path + "/subDB_" + num_records + "_" + "_".join(topics) + "_" + from_date + "_" + to_date + ".sqlite3") as conn:
+    with sqlite3.connect(db_path + "/subDB_" + "_".join(topics) + "_" + from_date + "_" + to_date + ".sqlite3") as conn:
         cur = conn.cursor()
         before_time_sliced_table_query = ("create table co_author_before_time_slice_" + "".join(ymd) + " as \
                                         select co.id_author_1, co.id_author_2 \
@@ -125,7 +125,7 @@ def calculate_scores_static(num_records, level, topics, from_date, to_date, weig
             cur.execute(before_time_sliced_table_query)
 
         potential_co_author_name = "potential_co_author_before_time_slice_" + "".join(ymd) + "_"
-        res = create_potential_co_authors(num_records, level, topics, co_author_name, potential_co_author_name)
+        res = create_potential_co_authors(level, topics, co_author_name, potential_co_author_name)
         records = json.loads(res)['last_potential'][1]
         # get co authors after time slice as labels
         after_time_sliced_table_query = ("select co.id_author_1, co.id_author_2 \
@@ -137,21 +137,21 @@ def calculate_scores_static(num_records, level, topics, from_date, to_date, weig
         cur.execute(after_time_sliced_table_query)
         after_time_sliced_result = cur.fetchall()
         # calculate CommonCountry score seperately
-        CommonCountry_list = CommonCountry(adj, graph.list_vertices, records, max_time, "static", max_time)
+        CommonCountry_list = CommonCountry(adj, graph.list_vertices, records, max_time, "static", time_slice[:4]+1)
         cnt_0 = 0
         cnt_1 = 0
         for row in records:
             id1 = row[0]
             id2 = row[1]
-            co_id1 = list_co_authors_before_t(id1, max_time, adj)
-            co_id2 = list_co_authors_before_t(id2, max_time, adj)
+            co_id1 = list_co_authors_before_t(id1, time_slice[:4]+1, adj)
+            co_id2 = list_co_authors_before_t(id2, time_slice[:4]+1, adj)
             common_neighbors = list(set(co_id1) & set(co_id2))
-            CommonNeighbor_list.append(CommonNeighbor(id1,id2,adj, max_time,co_id1,co_id2,common_neighbors, weight_type))
-            AdamicAdar_list.append(AdamicAdar(id1,id2,adj, max_time,co_id1,co_id2,common_neighbors, weight_type))
-            JaccardCoefficient_list.append(JaccardCoefficient(id1,id2,adj, max_time,co_id1,co_id2,common_neighbors, weight_type))
-            PreferentialAttachment_list.append(PreferentialAttachment(id1,id2,adj, max_time,co_id1,co_id2,common_neighbors, weight_type))
-            ResourceAllocation_list.append(ResourceAllocation(id1,id2,adj, max_time,co_id1,co_id2,common_neighbors, weight_type))
-            ShortestPath_list.append(ShortestPath(id1,id2, adj, max_time))
+            CommonNeighbor_list.append(CommonNeighbor(id1,id2,adj, time_slice[:4]+1,co_id1,co_id2,common_neighbors, weight_type))
+            AdamicAdar_list.append(AdamicAdar(id1,id2,adj, time_slice[:4]+1,co_id1,co_id2,common_neighbors, weight_type))
+            JaccardCoefficient_list.append(JaccardCoefficient(id1,id2,adj, time_slice[:4]+1,co_id1,co_id2,common_neighbors, weight_type))
+            PreferentialAttachment_list.append(PreferentialAttachment(id1,id2,adj, time_slice[:4]+1,co_id1,co_id2,common_neighbors, weight_type))
+            ResourceAllocation_list.append(ResourceAllocation(id1,id2,adj, time_slice[:4]+1,co_id1,co_id2,common_neighbors, weight_type))
+            ShortestPath_list.append(ShortestPath(id1,id2, adj, time_slice[:4]+1))
             if (id1, id2) in after_time_sliced_result:
                 labels.append(1)
                 cnt_1 += 1
@@ -159,7 +159,7 @@ def calculate_scores_static(num_records, level, topics, from_date, to_date, weig
                 labels.append(0)
                 cnt_0 += 1
         if csv_file_name == "":
-            file_name = results_path + "/Data_" + num_records + "_" + "_".join(topics) + "_" + from_date + "_" + to_date + "_" + weight_type + "_" + time_slice + "_static.csv"
+            file_name = results_path + "/Data_" + "_".join(topics) + "_" + from_date + "_" + to_date + "_" + weight_type + "_" + time_slice + "_static.csv"
         else: 
             file_name = results_path + "/" + csv_file_name + ".csv"
         write_scores_to_csv(file_name, CommonCountry_list, AdamicAdar_list, JaccardCoefficient_list, PreferentialAttachment_list, ResourceAllocation_list, ShortestPath_list, CommonCountry_list, labels, cur, records)
@@ -177,7 +177,7 @@ def write_scores_to_csv(file_name, CommonNeighbor_list, AdamicAdar_list, Jaccard
     # using pandas to add score columns
         
     df = pd.read_csv(file_name)
-    df['CommonNeighbor'] = CommonCountry_list
+    df['CommonNeighbor'] = CommonNeighbor_list
     df['AdamicAdar'] = AdamicAdar_list
     df['JaccardCoefficient'] = JaccardCoefficient_list
     df['PreferentialAttachment'] = PreferentialAttachment_list

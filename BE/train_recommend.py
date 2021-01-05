@@ -1,56 +1,43 @@
-import pandas as pd
-import sklearn, os, json, numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn import svm, metrics
-from sklearn.preprocessing import StandardScaler
+from flask import Flask, jsonify, request
+from flask_cors import CORS
+from train import train, get_test_authors
+from recommend import recommend
+import os
+from query import get_all_authors
 
+app = Flask(__name__)
+CORS(app)
 
 basedir = os.path.dirname((os.path.dirname(__file__)))
 results_path = os.path.join(basedir, 'Results')
 
-# def load_data():
+@app.route('/get_test_authors', methods=['POST'])
+def _get_test_authors():
+    data_name = request.get_json()["data_name"]
+    test_percent = request.get_json()["test_percent"]
+    db_name = request.get_json()['db_name']
+    return get_test_authors(data_name, test_percent, db_name)
 
-# def split_data():
+@app.route('/train', methods=['POST'])
+def _train():
+    data_name = request.get_json()["data_name"]
+    test_percent = request.get_json()["test_percent"]
+    return train(data_name, test_percent)
 
-def train(data_name, test_percent):
-    test_percent = int(test_percent)
-    data_path = results_path + "/" + data_name
-    data = pd.read_csv(data_path)
-    
-    data = data.drop_duplicates(subset=['CommonNeighbor', 'AdamicAdar', 'JaccardCoefficient', 'PreferentialAttachment', 'ResourceAllocation', 'ShortestPath' ,'CommonCountry', 'Label'])
-    
-    X = data.drop(columns=['id_author_1', 'id_author_2', 'Label'])
-    y = data['Label']
+@app.route('/recommend', methods=['POST'])
+def _recommend():
+    topic = request.get_json()['topic']
+    from_date = request.get_json()["from_date"]
+    to_date = request.get_json()["to_date"]
+    author_id = request.get_json()['author_id']
+    model_name = request.get_json()['model_name']
+    return recommend(topic, from_date, to_date, author_id, model_name)
 
-    scaler = StandardScaler().fit(X)
-    X = scaler.transform(X)
+@app.route('/get_all_authors', methods=['POST'])
+def _get_all_authors():
+    topic = request.get_json()['topic']
+    from_date = request.get_json()["from_date"]
+    to_date = request.get_json()["to_date"]
+    return get_all_authors(topic, from_date, to_date)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=float(test_percent/100), random_state=608, shuffle=True)
-
-    print("Tỉ lệ nhãn 0-1")
-    print("Train")
-    print(np.sum(y_train==0), end='--')
-    print(np.sum(y_train==1))
-    print("Test")
-    print(np.sum(y_test==0), end='--')
-    print(np.sum(y_test==1)) 
-
-    model = svm.SVC(kernel='rbf', max_iter=5000)
-    model.fit(X_train, y_train)
-
-    y_pred = model.predict(X_test)
-
-    print("Precision:",metrics.precision_score(y_test, y_pred))
-    print("Recall:",metrics.recall_score(y_test, y_pred))
-    print("F1 score:",metrics.f1_score(y_test, y_pred))
-    print("Roc_auc_score score:",metrics.roc_auc_score(y_test, y_pred))
-    
-    result = {}
-    result['Precision'] = metrics.precision_score(y_test, y_pred)
-    result['Recall'] = metrics.recall_score(y_test, y_pred)
-    result['f1_score'] = metrics.f1_score(y_test, y_pred)
-    result['Roc_auc'] = metrics.roc_auc_score(y_test, y_pred)
-
-    return json.dumps({"results": result})
-
-
+app.run(debug=True, host='127.0.0.1', port=5001)

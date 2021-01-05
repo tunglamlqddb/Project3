@@ -290,9 +290,7 @@
 <!-- Footer -->  </body>
 
   <script>
-    // global variable num_records
-    var num_records = "";
-
+    
     function show_time_slice() {
       // label_type = document.getElementById("label_type").value;
       const label_type = $("#label_type input[type=radio]:checked").val();
@@ -323,15 +321,12 @@
       })
         .then((res) => res.json())
         .then((result) => {
-          num_records += result["num_records"];
           console.log("Những năm mà các paper đó được viết: ", result["dates"]);
           show_dates_of_topics(result["dates"]);
         });
     }
     function query() {
       //const num_records = document.getElementById("inputSuccess").value;
-
-      //const topic = document.getElementById("journal").value;
       const from_date = document.getElementById("fromDate").value;
       const to_date = document.getElementById("toDate").value;
       const topics = [];
@@ -341,7 +336,6 @@
       fetch("http://127.0.0.1:5000/query", {
         method: "POST",
         body: JSON.stringify({
-          num_records: num_records,
           topics: topics,
           from_date: from_date,
           to_date: to_date,
@@ -371,7 +365,6 @@
 
     function create_co_authors() {
       //const num_records = document.getElementById("inputSuccess").value;
-      //const topic = document.getElementById("journal").value;
       const topics = [];
       $(":checkbox:checked").each(function (i) {
         topics[i] = $(this).val();
@@ -384,7 +377,7 @@
           "Content-Type": "application/json",
           "Access-Control-Allow-Origin": "*",
         },
-        body: JSON.stringify({ num_records: num_records, topics: topics, from_date: from_date, to_date: to_date }),
+        body: JSON.stringify({ topics: topics, from_date: from_date, to_date: to_date }),
       })
         .then((res) => res.json())
         .then((result) => {
@@ -396,11 +389,7 @@
 
     function create_potential_co_authors() {
       //const num_records = document.getElementById("inputSuccess").value;
-      // const level = parseInt(document.getElementById("level").value);
       const level = Number($("#level input[type=radio]:checked").val());
-      //const topic = document.getElementById("journal").value;
-      // const nameFile = $("#name-file-csv").val();
-
       const topics = [];
       $(":checkbox:checked").each(function (i) {
         topics[i] = $(this).val();
@@ -414,7 +403,6 @@
           "Access-Control-Allow-Origin": "*",
         },
         body: JSON.stringify({
-          num_records: num_records,
           level: level,
           topics: topics,
           from_date: from_date,
@@ -431,16 +419,12 @@
 
     function calculate_scores_and_label() {
       //const num_records = document.getElementById("inputSuccess").value;
-      // const level = parseInt(document.getElementById("level").value);
       const level = Number($("#level input[type=radio]:checked").val());
-      //const topic = document.getElementById("journal").value;
       const topics = [];
       $(":checkbox:checked").each(function (i) {
         topics[i] = $(this).val();
       });
-      // const weight_type = document.getElementById("weight_type").value;
       const weight_type = $("#weight_type input[type=radio]:checked").val();
-      //  const label_type = document.getElementById("label_type").value;
       const label_type = $("#label_type input[type=radio]:checked").val();
       const year_slice = document.getElementById("year_slice").value;
       const month_slice = document.getElementById("month_slice").value;
@@ -467,7 +451,6 @@
 
       if (time_slice != "") {
         body = JSON.stringify({
-          num_records: num_records,
           level: level,
           topics: topics,
           from_date: from_date,
@@ -479,7 +462,6 @@
         });
       } else {
         body = JSON.stringify({
-          num_records: num_records,
           level: level,
           topics: topics,
           from_date: from_date,

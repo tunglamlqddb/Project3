@@ -27,7 +27,6 @@ class Co_Author_Graph:
         self.time_patterns = set() # used to store all years of publication; could be month or smth else
         
         # create list of vertices:
-        
         with sqlite3.connect(db_path) as conn:
             print("----------Start creating co author graph: Vertice----------")
             cur = conn.cursor() 

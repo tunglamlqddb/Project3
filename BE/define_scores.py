@@ -1,7 +1,7 @@
 import math
 
 def list_co_authors_before_t(u, t, adj):
-    res = []
+    res = []    
     for v in adj[u].keys():
         for year in adj[u][v].years.keys():
             if year < t:
@@ -120,7 +120,7 @@ def ResourceAllocation(id1, id2, adj, t, co_id1, co_id2, common_neighbors, weigh
                 res += numerator / denominator
     return res
 
-def bfs(s, e, adj, t):     #bfs to find shortest path between s and e
+def bfs(s, e, adj, t):     #bfs to find shortest path between s and e  ==> Time complexity
     num_ver = len(adj)
     max_num_edges = num_ver * (num_ver-1) / 2
     if s == e: return 0
@@ -142,11 +142,76 @@ def bfs(s, e, adj, t):     #bfs to find shortest path between s and e
                     dist[v] = dist[u] + 1
     return 0
 
+def bidirectional_shortest_path(adj, source, target, t):
+    if bidirectional_pred_succ(adj, source, target, t) is None:
+        return [1]
+    else:
+        pred, succ, w = bidirectional_pred_succ(adj, source, target, t)
+        path = []
+        while w is not None:
+            path.append(w)
+            w = pred[w]
+        path.reverse()
+        w = succ[path[-1]]
+        while w is not None:
+            path.append(w)
+            w = succ[w]
+        return path
+
+def bidirectional_pred_succ(adj, source, target, t):
+    Gpred = adj
+    Gsucc = adj
+    pred = {source: None}
+    succ = {target: None}
+    forward_fringe = [source]
+    reverse_fringe = [target]
+    while forward_fringe and reverse_fringe:
+        if len(forward_fringe) <= len(reverse_fringe):
+            this_level = forward_fringe
+            forward_fringe = []
+            for v in this_level:
+                co_v = list_co_authors_before_t(v, t, adj)
+                for w in co_v:
+                    if w not in pred:
+                        forward_fringe.append(w)
+                        pred[w] = v
+                    if w in succ:
+                        return pred, succ, w
+        else:
+            this_level = reverse_fringe
+            reverse_fringe = []
+            for v in this_level:
+                co_v = list_co_authors_before_t(v, t, adj)
+                for w in co_v:
+                    if w not in succ:
+                        succ[w] = v
+                        reverse_fringe.append(w)
+                    if w in pred:
+                        return pred, succ, w
+
 def ShortestPath(id1, id2, adj,t):    # not take w into account
-    dist = bfs(id1, id2, adj, t)
+    dist = len(bidirectional_shortest_path(adj, id1,id2, t))-1
     if dist == 0: return 0
     else:   
         return 1 / dist
+
+
+def CommonCountry_pair(id1, id2, list_vertices, common_neighbors):
+    def sim_work_2(id1, id2):
+        if list_vertices[id1].university == list_vertices[id2].university: return 2
+        elif list_vertices[id1].country_id == list_vertices[id2].country_id: return 1
+        else: return  0
+    def sim_work_3(id1, id2, id3):
+        if list_vertices[id1].university == list_vertices[id2].university and list_vertices[id1].university == list_vertices[id3].university:
+            return 2
+        elif list_vertices[id1].country_id == list_vertices[id2].country_id and list_vertices[id1].country_id == list_vertices[id3].country_id:
+            return 1
+        else: return 0
+
+    comm_country_score = sim_work_2(id1, id2)    
+    for z in common_neighbors:
+        comm_country_score += sim_work_3(id1, id2, z)
+    return comm_country_score
 
 def CommonCountry(adj, list_vertices, records, max_time, label_type, time_slice):  # records of potential_co_author
     # return list of scores of each pair
@@ -165,6 +230,7 @@ def CommonCountry(adj, list_vertices, records, max_time, label_type, time_slice)
         elif list_vertices[id1].country_id == list_vertices[id2].country_id and list_vertices[id1].country_id == list_vertices[id3].country_id:
             return 1
         else: return 0
+
     if label_type == "dynamic":
         for row in records:
             id1 = row[0]

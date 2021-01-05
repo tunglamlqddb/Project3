@@ -1,5 +1,6 @@
 import sqlite3
 import json, os
+import numpy as np
 
 # db_path = "/home/lam/Documents/prj3_copy/prj3/data/db.sqlite3"
 basedir = os.path.dirname(os.path.dirname((os.path.dirname(__file__))))
@@ -12,21 +13,19 @@ def get_dates_of_topics(topics):
                             where p.journal_id in (" + ','.join(topics) + ")")
         cur.execute(get_dates_query)
         records = cur.fetchall()
-        # total records
-        num_records = len(records)
         # consider only years
         years = set()
         for date in records:
             date = date[0]
             year = int(date[0:4])
             years.add(year)
-    return  json.dumps({"dates": sorted(list(years)), "num_records": num_records})
+    return  json.dumps({"dates": sorted(list(years))})
 
-def create_sub_tables(num_records, topics, from_date, to_date):
+def create_sub_tables(topics, from_date, to_date):
     topic_name = "_".join(topics)
     with sqlite3.connect(db_path + '/db.sqlite3') as conn:
         cur = conn.cursor()
-        cur.execute("ATTACH DATABASE '" + db_path +  "/subDB_" + num_records + "_" + topic_name + "_" + from_date + "_" + to_date + ".sqlite3' AS sub_db")
+        cur.execute("ATTACH DATABASE '" + db_path +  "/subDB_" + topic_name + "_" + from_date + "_" + to_date + ".sqlite3' AS sub_db")
         name1 = "paper"
         name2 = "paper_authors"
         name3 = "author" 
@@ -85,8 +84,8 @@ def create_sub_tables(num_records, topics, from_date, to_date):
         res3 = cur.fetchall()
     return  json.dumps({"paper": [name_1,res1], "author": [name_2,res2], "paper_authors": [name_3,res3]})
 
-def create_co_authors(num_records, topics, from_date, to_date):
-    with sqlite3.connect(db_path + "/subDB_" + num_records + "_" + "_".join(topics) + "_" + from_date + "_" + to_date + ".sqlite3") as conn:
+def create_co_authors(topics, from_date, to_date):
+    with sqlite3.connect(db_path + "/subDB_" + "_".join(topics) + "_" + from_date + "_" + to_date + ".sqlite3") as conn:
         cur = conn.cursor()
         create_co_authors_table = ("create table co_author \
                                     as select pa1.paper_id, pa1.author_id as id_author_1, pa2.author_id as id_author_2 \
@@ -102,7 +101,7 @@ def create_co_authors(num_records, topics, from_date, to_date):
         else:
             res = cur.execute(create_co_authors_table)
             message = {"msg": "create co author table successfully!",
-                    "name": "co author " + num_records + "_" + "_".join(topics)
+                    "name": "co author " + "_" + "_".join(topics)
             }
 
     # query to return result ==> may be unnecessary
@@ -112,11 +111,11 @@ def create_co_authors(num_records, topics, from_date, to_date):
     result = cur.fetchall()
     return json.dumps({"co_author": [column_names,result], "msg": message})
 
-def create_potential_co_authors(num_records, level, topics, co_author_name, potential_co_author_name, from_date, to_date):   # could be used for time sliced potential
+def create_potential_co_authors(level, topics, co_author_name, potential_co_author_name, from_date, to_date):   # could be used for time sliced potential
     temp = co_author_name
     message = []
 
-    with sqlite3.connect(db_path + "/subDB_" + num_records + "_" + "_".join(topics) + "_" + from_date + "_" + to_date + ".sqlite3") as conn:
+    with sqlite3.connect(db_path + "/subDB_" + "_".join(topics) + "_" + from_date + "_" + to_date + ".sqlite3") as conn:
         cur = conn.cursor()
         for i in range(level):
             if i > 0:
@@ -160,3 +159,21 @@ def create_potential_co_authors(num_records, level, topics, co_author_name, pote
     column_names = [i[0] for i in cur.description]
     result = cur.fetchall()
     return json.dumps({"last_potential": [column_names,result], "msg": message})
+
+
+def get_all_authors(topic, from_date,to_date):
+    _ = create_sub_tables([topic], from_date, to_date)
+    with sqlite3.connect(db_path + "/subDB_" + topic + "_" + from_date + "_" + to_date +'.sqlite3') as conn:
+        cur = conn.cursor()
+        cur.execute("ATTACH DATABASE '" + db_path + "/db.sqlite3' AS db")
+        query = ("select a.id, a.first_name, a.last_name from db.collab_author a\
+                  where a.id in (select id from author)  \
+                ")
+        cur.execute(query)
+        result = cur.fetchall()
+        result = np.array(result)
+        id = result[:, 0]
+        first_name = result[:, 1]
+        last_name = result[:, 2]
+        return json.dumps({"id": list(id), "first_name": list(first_name), "last_name": list(last_name)}) 
+ 
