@@ -2,7 +2,7 @@ import pandas as pd
 import sklearn, os, json, numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn import svm, metrics
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, normalize
 import sqlite3, pickle
 
 
@@ -64,17 +64,33 @@ def train(data_name, test_percent):
     
     X = data.drop(columns=['id_author_1', 'id_author_2', 'Label'])
     y = data['Label']
-
+    print(X.shape)
     print("Tỉ lệ nhãn 0-1")
     print(np.sum(y==0), end='--')
     print(np.sum(y==1))
 
     scaler = MinMaxScaler().fit(X)
     X = scaler.transform(X)
+    
+    # Note: this is only for the purpose of demo. 
+    # To be precise, train set and test set should be created by splitting the whole papers into two consecutive sets
+    # For example: train set consists of papers from 2000-2008
+    # test set consists of papers from 2009-2017
+    # Then code should be like this
+    # data_train = pd.read_csv(results_path + "/" + "train.csv")
+    # data_test = pd.read_csv(results_path + "/" + "test.csv")
 
+    # data_train = data_train.drop_duplicates(subset=['CommonNeighbor', 'AdamicAdar', 'JaccardCoefficient', 'PreferentialAttachment', 'ResourceAllocation', 'ShortestPath' ,'CommonCountry', 'Label'])
+    # data_test = data_test.drop_duplicates(subset=['CommonNeighbor', 'AdamicAdar', 'JaccardCoefficient', 'PreferentialAttachment', 'ResourceAllocation', 'ShortestPath' ,'CommonCountry', 'Label'])
+
+    # X_train = data_train.drop(columns=['id_author_1', 'id_author_2', 'Label', 'CommonNeighbor', 'AdamicAdar', 'JaccardCoefficient', 'PreferentialAttachment', 'ResourceAllocation', 'ShortestPath'])
+    # y_train = data_train['Label']
+
+    # X_test = data_test.drop(columns=['id_author_1', 'id_author_2', 'Label', 'CommonNeighbor', 'AdamicAdar', 'JaccardCoefficient', 'PreferentialAttachment', 'ResourceAllocation', 'ShortestPath'])
+    # y_test = data_test['Label'] 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=float(test_percent/100), random_state=608, shuffle=True)
 
-    print(X_train[:10])
+    # print(X_train[:10])
 
     model = svm.SVC(kernel='rbf', max_iter=5000)
     model.fit(X_train, y_train)

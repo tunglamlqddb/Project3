@@ -20,3 +20,4 @@ Co-author recommender system
 	+ Choose file dataset, choose train-test-split percentage. After training, model and scaler will be saved at folder Models, and training results will be displayed
 - Recommendation pahse:
 	+ Choose Topic of journal, year begin, year end to generate the co-author graph, then choose author to recommend and model. Top 5 candidates found by network links and affiliation will be displayed.
+6. For further source code details or any requirement, please contact lam.tt173226@sis.hust.edu.vn
